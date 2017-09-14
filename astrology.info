@@ -1,0 +1,5 @@
+name = Astrology
+description = Provides daily, weekly, monthly, and yearly Astrology for particular Astrology and their associated sign.
+core = 7.x
+configure = admin/config/astrology
+

@@ -1,0 +1,284 @@
+<?php
+
+/**
+ * @file
+ * Include inc file.
+ */
+
+module_load_include('inc', 'astrology', 'admin');
+module_load_include('inc', 'astrology', 'admin.forms');
+
+/**
+ * Implements hook_block_info().
+ */
+function astrology_block_info() {
+  $blocks['astrology'] = array(
+    'info' => t('Astrology'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function astrology_block_view($delta) {
+  $block = array();
+  switch ($delta) {
+    case 'astrology':
+      $block['subject'] = t('Astrology');
+      $block['content'] = astrology_block_content();
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function astrology_theme() {
+  $theme = array();
+  $path = drupal_get_path('module', 'astrology');
+  $path .= '/templates';
+  $theme['astrology-block'] = array(
+    'variables' => array(
+      'formatter' => NULL,
+      'signs' => NULL,
+      'blank_msg' => NULL,
+    ),
+    'template' => 'astrology',
+    'path' => $path,
+  );
+  $theme['get-astrology'] = array(
+    'variables' => array(
+      'sign' => NULL,
+      'sign_info' => NULL,
+      'formatter' => NULL,
+      'date_format' => NULL,
+      'astrology_text' => NULL,
+      'about_sign_summary' => NULL,
+      'post_date' => NULL,
+      'weeks' => NULL,
+      'date_range_sign' => NULL,
+      'for_date' => NULL,
+    ),
+    'template' => 'astrology-text',
+    'path' => $path,
+  );
+  $theme['get-sign-detail'] = array(
+    'variables' => array(
+      'sign' => NULL,
+    ),
+    'template' => 'astrology-sign-text',
+    'path' => $path,
+  );
+  $theme['get-birth-sign'] = array(
+    'variables' => array(
+      'sign' => NULL,
+      'formatter' => NULL,
+      'date_range_sign' => NULL,
+      'about_sign_summary' => NULL,
+    ),
+    'template' => 'astrology-dob-sign',
+    'path' => $path,
+  );
+  return $theme;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function astrology_menu() {
+  $items = array();
+  $items['admin/config/astrology'] = array(
+    'title' => 'Astrology',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+  $items['admin/config/astrology/list'] = array(
+    'title' => 'Astrology settings',
+    'description' => 'Configure default astrology settings,
+      including adding, editing custom astrology, text and signs.',
+    'page callback' => 'astrology_list',
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/add'] = array(
+    'title' => 'Add astrology',
+    'description' => 'Add different astrology if needed.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_add_form'),
+    'access arguments' => array('administer access control'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  $items['admin/config/astrology/list/%astrology/signs'] = array(
+    'title' => 'List astrology signs',
+    'description' => 'Return astrology.',
+    'page callback' => 'astrology_list_signs',
+    'page arguments' => array(4),
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/list/%/edit'] = array(
+    'title' => 'Edit astrology',
+    'description' => 'Edit astrology.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_edit_form', 4),
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/list/%/add_sign'] = array(
+    'title' => 'Add Sign',
+    'description' => 'Add sign in astrology.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_add_sign_form', 4),
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/list/%/delete'] = array(
+    'title' => 'Delete astrology',
+    'description' => 'Delete astrology.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_delete_form', 4),
+    'access arguments' => array('administer access control'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/astrology/list/%/signs/%/edit'] = array(
+    'title' => 'Edit Sign',
+    'description' => 'Edit astrology sign.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_edit_sign_form', 4, 6),
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/list/%/signs/%/delete'] = array(
+    'title' => 'Delete Sign',
+    'description' => 'Delete astrology sign.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_delete_sign_form', 4, 6),
+    'access arguments' => array('administer access control'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/astrology/list/%/signs/%/add_text'] = array(
+    'title' => 'Add Text',
+    'description' => 'Add text for astrology sign.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_add_text_form', 4, 6),
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/list/%/list_text'] = array(
+    'title' => 'List Text',
+    'description' => 'List text for astrology sign.',
+    'page callback' => 'astrology_list_text',
+    'page arguments' => array(4),
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/list/%/signs/%/replace_text'] = array(
+    'title' => 'Edit Text',
+    'description' => 'Edit text for astrology sign.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_sign_replace_text_form', 4, 6),
+    'access arguments' => array('administer access control'),
+  );
+  $items['admin/config/astrology/%/sign/%/text/%/edit'] = array(
+    'title' => 'Edit Text',
+    'description' => 'Edit text for astrology sign.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_edit_text_form', 3, 5, 7),
+    'access arguments' => array('administer access control'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['astrology/%/day'] = array(
+    'title' => 'Astrology of the day',
+    'description' => 'Return daily astrology.',
+    'page callback' => 'astrology_get_astrology',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['astrology/%/week'] = array(
+    'title' => 'Astrology for the week',
+    'description' => 'Return weekly astrology.',
+    'page callback' => 'astrology_get_astrology',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['astrology/%/month'] = array(
+    'title' => 'Astrology for the month',
+    'description' => 'Return monthly astrology.',
+    'page callback' => 'astrology_get_astrology',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['astrology/%/year'] = array(
+    'title' => 'Astrology for the year',
+    'description' => 'Return yearly astrology.',
+    'page callback' => 'astrology_get_astrology',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['astrology/%/details'] = array(
+    'title' => 'About astrology sign',
+    'description' => 'Return details about astrology sign.',
+    'page callback' => 'astrology_get_sign_details',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['astrology/%/sunsign'] = array(
+    'title' => 'Your astrological sign',
+    'description' => 'Return astrology sign for specific DOB.',
+    'page callback' => 'astrology_get_birth_sign',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['astrology/birth_sign'] = array(
+    'title' => 'Find your astrological sign',
+    'description' => 'Return particulars astrology sign.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('astrology_get_birth_sign_form'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Query all signs from default astrology.
+ */
+function query_all_signs($astrology) {
+  return db_select('astrology_signs', 'as_')
+    ->fields('as_')
+    ->condition('astrology_id', $astrology, '=')
+    ->execute();
+}
+
+/**
+ * Auto loader function for astrology.
+ */
+function astrology_load($astrology_id) {
+  return db_select('astrology', 'a')
+    ->fields('a')
+    ->condition('id', $astrology_id, '=')
+    ->execute()
+    ->fetchObject();
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function astrology_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  switch ($root_path) {
+    case 'admin/config/astrology/list':
+      $item = menu_get_item('admin/config/astrology/add');
+      if ($item['access']) {
+        $data['actions']['output'][] = array(
+          '#theme' => 'menu_local_action',
+          '#link' => $item,
+        );
+      }
+      break;
+  }
+}
