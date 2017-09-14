@@ -215,4 +215,104 @@ class UtilityController extends ControllerBase {
       ->invalidateTags(['astrology_block']);
   }
 
+  public function astrologyCheckNextPrev($formatter, $next_prev){
+  
+    $next_prev_val = [];
+
+    // If leap year, set number of days in year.
+    $last_day_of_year = date('L') ? 365 : 364;
+
+    // If leap year, set max week number in year.
+    $last_week_of_year = date('L') ? 53 : 52;
+
+    $last_month_of_year = 12;
+    $max_year_range = date('Y') + 5;
+    $min_year_range = date('Y') - 5;
+
+    switch ($formatter) {
+      case 'day':
+        if($next_prev < $last_day_of_year && $next_prev > 0){
+          $next_prev_val['next'] = $next_prev + 1;
+          $next_prev_val['prev'] = ($next_prev - 1) ? $next_prev - 1 : '+0';
+        }
+        elseif ($next_prev == $last_day_of_year) {
+          $next_prev_val['next'] = FALSE;
+          $next_prev_val['prev'] = $next_prev - 1;
+        }elseif ($next_prev == '0') {
+          $next_prev_val['next'] = 1;
+          $next_prev_val['prev'] = FALSE;
+        }
+        break;
+
+      case 'week':
+        if($next_prev >= 1 && $next_prev < $last_week_of_year){
+          $next_prev_val['next'] = $next_prev + 1;
+          $next_prev_val['prev'] = $next_prev - 1;
+        }
+        elseif($next_prev == $last_week_of_year){
+          $next_prev_val['next'] = FALSE;
+          $next_prev_val['prev'] = $next_prev - 1;
+        }
+        break;
+
+      case 'month':
+        if($next_prev >= 1 && $next_prev < $last_month_of_year){
+          $next_prev_val['next'] = $next_prev + 1;
+          $next_prev_val['prev'] = $next_prev - 1;
+        }
+        elseif($next_prev == $last_month_of_year){
+          $next_prev_val['next'] = FALSE;
+          $next_prev_val['prev'] = $next_prev - 1;
+        }
+        break;
+
+      case 'year':
+        if($next_prev > $min_year_range && $next_prev < $max_year_range){
+          $next_prev_val['next'] = $next_prev + 1;
+          $next_prev_val['prev'] = $next_prev - 1;
+        }
+        elseif ($next_prev == $max_year_range) {
+          $next_prev_val['next'] = FALSE;
+          $next_prev_val['prev'] = $next_prev - 1;
+        }
+        elseif ($next_prev == $min_year_range) {
+          $next_prev_val['next'] = $next_prev + 1;
+          $next_prev_val['prev'] = FALSE;
+        }
+        break;
+    }
+    return $next_prev_val;
+  }
+
+  public function astrologyCheckValidDate($formatter, $next_prev) {
+
+    if(!is_numeric($next_prev)){
+      return FALSE;
+    }
+
+    // If leap year, set number of days in year.
+    $last_day_of_year = date('L') ? 365 : 364;
+
+    // If leap year, set max week number in year.
+    $last_week_of_year = date('L') ? 53 : 52;
+
+    $last_month_of_year = 12;
+    $max_year_range = date('Y') + 5;
+    $min_year_range = date('Y') - 5;
+    
+     if($formatter == 'day' && ($next_prev < 0 || $next_prev > $last_day_of_year)){
+      return FALSE;
+    }
+    if($formatter == 'week' && ($next_prev < 1 || $next_prev > $last_week_of_year)){
+      return FALSE;
+    }
+    if($formatter == 'month' && ($next_prev < 1 || $next_prev > $last_month_of_year)){
+      return FALSE;
+    }
+    if($formatter == 'year' && ($next_prev < $min_year_range || $next_prev > $max_year_range)){
+      return FALSE;
+    }
+    return TRUE;
+  }
+
 }

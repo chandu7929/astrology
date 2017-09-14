@@ -18,7 +18,7 @@
 <ul class='clearfix menu'> 
 {% for sign in signs %} 
   <li class="menu-item sign-name">
-  	<a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': formatter})|lower }}" >
+  	<a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': formatter, 'next_prev': 0})|lower }}" >
   		<img src="{{ file_url(sign.icon) }}" alt="{{ sign.name }}" height="20" width="20" /> 
 	<span>{{sign.name}}</span> 
     </a>

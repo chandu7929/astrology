@@ -22,10 +22,10 @@
 <div class="astrology-formatter-link">
  	<nav>
 	    <ul>
-			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'day'})|lower }}" >Astrology for today</a></li>
-			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'week'})|lower }}" >Astrology for week</a></li>
-			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'month'})|lower }}" >Astrology for month</a></li>
-			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'year'})|lower }}" >Astrology for year</a></li>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'day', 'next_prev': 0})|lower }}" >Astrology for today</a></li>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'week', 'next_prev': 0})|lower }}" >Astrology for week</a></li>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'month', 'next_prev': 0})|lower }}" >Astrology for month</a></li>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'year', 'next_prev': 0})|lower }}" >Astrology for year</a></li>
 			<li> <a href="{{ path('astrology.astrology_birth_form') }}" >Find your star sign</a></li>
 	    </ul>
 	</nav>

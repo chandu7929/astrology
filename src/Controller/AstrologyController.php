@@ -135,7 +135,7 @@ class AstrologyController extends ControllerBase {
    * @param string $formatter
    *   Day, week etc.
    */
-  public function astrologyListTextSignPage($sign_name = NULL, $formatter = NULL) {
+  public function astrologyListTextSignPage($sign_name = NULL, $formatter = NULL, $next_prev = NULL) {
 
     $astrology_config = $this->config('astrology.settings');
     $astrology_id = $astrology_config->get('astrology');
@@ -153,7 +153,9 @@ class AstrologyController extends ControllerBase {
     if ($query->rowCount() == 0 || !in_array($formatter, $allowed_format)) {
       throw new NotFoundHttpException();
     }
-
+    if($next_prev && !$this->utility->astrologyCheckValidDate($formatter, $next_prev)){
+      throw new NotFoundHttpException();
+    }
     // +1 for day of week as Monday.
     $first_day_of_week = mktime(0, 0, 0, date("n"), date("j") - date("N") + 1);
     // +7 to the last day of week that is Sunday.
@@ -166,25 +168,34 @@ class AstrologyController extends ControllerBase {
     $from_day = $from_date[1];
     $to_month = $to_date[0];
     $today = $to_date[1];
+    
     switch ($format_char) {
       case 'day':
         $format = 'z';
-        $date = date('z');
+        $date = $next_prev ? $next_prev : date('z');
+        $post_date = mktime(0, 0, 0, 1, ($date + 1), date('o'));
+        $date_format = 'l, j F';
         break;
 
       case 'week':
         $format = 'W';
-        $date = date('W');
+        $date = $next_prev ? $next_prev : date('W');
+        $post_date = mktime(0, 0 , 0 , 1, (4 + 7*($date - 1)), date('o'));
+        $date_format = 'j, M';
         break;
 
       case 'month':
         $format = 'n';
-        $date = date('n');
+        $date = $next_prev ? $next_prev : date('n');
+        $post_date = mktime(0, 0, 0, $date);
+        $date_format = 'F';
         break;
 
       case 'year':
         $format = 'o';
-        $date = date('o');
+        $date = $next_prev ? $next_prev : date('o');
+        $date_format = 'Y';
+        $post_date = mktime(0, 0, 0, 1, 1, $date);
         break;
     }
 
@@ -195,6 +206,15 @@ class AstrologyController extends ControllerBase {
       ->condition('format_character', $format)
       ->execute();
     $astrology_text = $query1->fetchObject();
+
+    if($next_prev) {
+      $next_prev_val = $this->utility->astrologyCheckNextPrev($formatter, $next_prev);
+    }else{
+      $next_prev = $date;
+      $next_prev_val = $this->utility->astrologyCheckNextPrev($formatter, $next_prev);
+    }
+
+    $weeks = $this->utility->getFirstLastDow($post_date);
 
     $date_range_sign = date('M, j', mktime(0, 0, 0, $from_month, $from_day));
     $date_range_sign .= ' - ' . date('M, j', mktime(0, 0, 0, $to_month, $today));
@@ -220,8 +240,9 @@ class AstrologyController extends ControllerBase {
       '#date_format' => $date_format,
       '#astrology_text' => $astrology_text,
       '#about_sign_summary' => $about_sign_summary,
-      '#first_day_of_week' => $first_day_of_week,
-      '#last_day_of_week' => $last_day_of_week,
+      '#post_date' => $post_date,
+      '#weeks' => $weeks,
+      '#for_date' => $next_prev_val,
       '#date_range_sign' => $date_range_sign,
     ];
     if ($format_char == 'day') {

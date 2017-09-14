@@ -106,7 +106,7 @@ astrology.add_text_astrology_sign:
     sign_id: ^[0-9]+
 
 astrology.list_text_sign_format:
-  path: 'astrology/{sign_name}/{formatter}'
+  path: 'astrology/{sign_name}/{formatter}/{next_prev}'
   defaults:
     _controller: '\Drupal\astrology\Controller\AstrologyController::astrologyListTextSignPage'
   requirements:

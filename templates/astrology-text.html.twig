@@ -8,10 +8,11 @@
  * - date_format to display.
  * - astrology_text object contains information.
  * - about_sign_summary contains summary text for the sign.
- * - first_day_of_week
- * - last_day_of_week 
- * - date_range_sign 
+ * - weeks array containing first and last day of week.
+ * - post_date posted date for the text.
+ * - date_range_sign
  * - sign_info a boolean value.
+ * - for_date a value that represent the text.
  */
 #}
 
@@ -23,14 +24,24 @@
 } %}
 
 <div class="astrology-date">
-	{% if formatter == 'week' %} 
-	  <span>{{ first_day_of_week|date(date_format) }} to 
-	  	{{ last_day_of_week|date(date_format) }}
-	  </span>
-	{% else %}
-		<span>{{ "now"|date(date_format) }} </span>
+	{% if for_date['prev'] %}
+	<span class="prev pull-left">
+		<a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': formatter, 'next_prev': for_date['prev']})|lower }}">Previous</a>
+	</span>
 	{% endif %}
- </div>
+
+	{% if formatter == 'week' %} 
+	  <span>{{ weeks[0]|date(date_format) }} to {{ weeks[1]|date(date_format) }}</span>
+	{% else %}
+		<span>{{ post_date|date(date_format) }} </span>
+	{% endif %}
+
+	{% if for_date['next'] %}
+	<span class="next pull-right">
+		<a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': formatter, 'next_prev': for_date['next']})|lower }}">Next</a>
+	</span>
+	{% endif %}
+</div>
 
 <div class="astrology-name-icon-date">
  	<h1>
@@ -52,9 +63,9 @@
 	    <ul>
 		    {% for key,item in nav %}
 		    	{% if formatter == key %} 
-			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link1})|lower }}" >Astrology for {{ item.link1 }}</a></li>
-			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link2})|lower }}" >Astrology for {{ item.link2 }}</a></li>
-			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link3})|lower }}" >Astrology for {{ item.link3 }}</a></li>
+			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link1, 'next_prev': 0})|lower }}" >Astrology for {{ item.link1 }}</a></li>
+			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link2, 'next_prev': 0})|lower }}" >Astrology for {{ item.link2 }}</a></li>
+			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link3, 'next_prev': 0})|lower }}" >Astrology for {{ item.link3 }}</a></li>
 			        <li> <a href="{{ path('astrology.astrology_birth_form') }}" >Find your star sign</a></li>
 		        {% endif %}
 		    {% endfor %}
@@ -63,13 +74,13 @@
  </div>
 
 {% if sign_info  %} 
-<div class="astrology-about-icon-date">
- 	<h1>About the <a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">{{sign.name}}</a></h1>
+  <div class="astrology-name-icon-date">
+ 	<h1>About <a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">{{sign.name}}</a></h1>
  	<img src="{{ file_url(sign.icon) }}" alt="{{ sign.name }}" height="75" width="75" />
  	<span>{{ sign.date_range_from }} - {{ sign.date_range_to }}</span>
+  </div>
+  <div class="astrology-about-text">
  	<p>{{about_sign_summary|raw}}</p>
- 	<span> 
- 	  <a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">Read more.</a>
- 	</span> 
-</div>
+ 	<span><a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">Read more.</a></span> 
+  </div>
 {% endif %}
