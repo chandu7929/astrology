@@ -5,6 +5,8 @@ namespace Drupal\astrology\Form;
 use Drupal\astrology\Controller\UtilityController;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Drupal\Core\Url;
 
@@ -42,11 +44,35 @@ class AstrologyDeleteSignForm extends ConfirmFormBase {
   }
 
   /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $astrology_id = NULL, $sign_id = NULL) {
-    $utility = new UtilityController();
-    $signs = $utility->getAstrologySignArray($sign_id, $astrology_id);
+
+    $signs = $this->utility->getAstrologySignArray($sign_id, $astrology_id);
     if ($astrology_id == 1 || $signs['astrology_id'] !== $astrology_id) {
       drupal_set_message($this->t("This sign can not be deleted"), 'error');
       throw new AccessDeniedHttpException();

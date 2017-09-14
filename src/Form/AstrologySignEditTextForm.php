@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\astrology\Controller\UtilityController;
 
 /**
@@ -19,19 +21,42 @@ class AstrologySignEditTextForm extends FormBase {
   }
 
   /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $astrology_id = NULL, $sign_id = NULL, $text_id = NULL) {
 
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $this->format_character = $astrology_config->get('format_character');
     $this->astrology_id = $astrology_id;
     $this->astrology_sign_id = $sign_id;
     $this->text_id = $text_id;
 
-    $utility = new UtilityController();
-    $options = $utility->getAstrologySignArray($sign_id, $astrology_id);
-    $result = $utility->isValidText($sign_id, $text_id);
+    $options = $this->utility->getAstrologySignArray($sign_id, $astrology_id);
+    $result = $this->utility->isValidText($sign_id, $text_id);
 
     $form['label'] = [
       '#markup' => $this->t('Name <strong>:name</strong>', [

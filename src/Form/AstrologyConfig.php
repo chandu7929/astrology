@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\astrology\Controller\UtilityController;
 
 /**
@@ -28,13 +30,35 @@ class AstrologyConfig extends ConfigFormBase {
   }
 
   /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
 
     $config = $this->config('astrology.settings');
-    $utility = new UtilityController();
-
     $form['settings'] = [
       '#type' => 'vertical_tabs',
     ];
@@ -74,7 +98,7 @@ class AstrologyConfig extends ConfigFormBase {
     $form['site']['astrology'] = [
       '#type' => 'select',
       '#title' => $this->t('Astrology'),
-      '#options' => $utility->getAstrologyArray(),
+      '#options' => $this->utility->getAstrologyArray(),
       '#default_value' => $config->get('astrology'),
     ];
     $form['site']['item-check'] = [
@@ -157,7 +181,7 @@ class AstrologyConfig extends ConfigFormBase {
       ->execute();
 
     // Retrieve the configuration.
-    \Drupal::configFactory()->getEditable('astrology.settings')
+    $this->config->getEditable('astrology.settings')
       // Set the submitted configuration setting.
       ->set('format_character', $format_character)
       ->set('admin_format_character', $admin_format_character)

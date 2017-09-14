@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Drupal\Core\Url;
 use Drupal\astrology\Controller\UtilityController;
@@ -42,6 +44,30 @@ class AstrologyDeleteForm extends ConfirmFormBase {
   }
 
   /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $astrology_id = NULL) {
@@ -59,7 +85,6 @@ class AstrologyDeleteForm extends ConfirmFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
-    $utility = new UtilityController();
     $result = db_query("SELECT enabled,name FROM {astrology} WHERE id = :id ",
     [':id' => $this->astrology_id]);
     $row = $result->fetchObject();
@@ -82,7 +107,7 @@ class AstrologyDeleteForm extends ConfirmFormBase {
     $result = db_query("DELETE FROM {astrology} WHERE id = :id",
     [':id' => $this->astrology_id]);
     if ($row->enabled) {
-      $utility->updateDefaultAstrology($this->astrology_id, $row->enabled, 'delete');
+      $this->utility->updateDefaultAstrology($this->astrology_id, $row->enabled, 'delete');
     }
     drupal_set_message($this->t("Astrology %name deleted.", ['%name' => $row->name]));
     $form_state->setRedirect('astrology.list_astrology');

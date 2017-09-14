@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\astrology\Controller\UtilityController;
 
 /**
@@ -19,12 +21,35 @@ class AstrologyEditSignForm extends FormBase {
   }
 
   /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $astrology_id = NULL, $sign_id = NULL) {
 
-    $utility = new UtilityController();
-    $astrology_signs = $utility->getAstrologySignArray($sign_id, $astrology_id);
+    $astrology_signs = $this->utility->getAstrologySignArray($sign_id, $astrology_id);
     $date_range_from = explode('/', $astrology_signs['date_range_from']);
     $date_range_to = explode('/', $astrology_signs['date_range_to']);
 
@@ -70,7 +95,7 @@ class AstrologyEditSignForm extends FormBase {
     $form['date_range']['date_range_from']['from_date_month'] = [
       '#type' => 'select',
       '#title' => $this->t('Month'),
-      '#options' => $utility->getMonthsArray(),
+      '#options' => $this->utility->getMonthsArray(),
       '#default_value' => $date_range_from[0],
       '#disabled' => $is_disabled,
       '#required' => TRUE,
@@ -78,7 +103,7 @@ class AstrologyEditSignForm extends FormBase {
     $form['date_range']['date_range_from']['from_date_day'] = [
       '#type' => 'select',
       '#title' => $this->t('Day'),
-      '#options' => $utility->getDaysArray(),
+      '#options' => $this->utility->getDaysArray(),
       '#default_value' => $date_range_from[1],
       '#disabled' => $is_disabled,
       '#required' => TRUE,
@@ -86,7 +111,7 @@ class AstrologyEditSignForm extends FormBase {
     $form['date_range']['date_range_to']['to_date_month'] = [
       '#type' => 'select',
       '#title' => $this->t('Month'),
-      '#options' => $utility->getMonthsArray(),
+      '#options' => $this->utility->getMonthsArray(),
       '#default_value' => $date_range_to[0],
       '#disabled' => $is_disabled,
       '#required' => TRUE,
@@ -94,7 +119,7 @@ class AstrologyEditSignForm extends FormBase {
     $form['date_range']['date_range_to']['to_date_day'] = [
       '#type' => 'select',
       '#title' => $this->t('Day'),
-      '#options' => $utility->getDaysArray(),
+      '#options' => $this->utility->getDaysArray(),
       '#default_value' => $date_range_to[1],
       '#disabled' => $is_disabled,
       '#required' => TRUE,

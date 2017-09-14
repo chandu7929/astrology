@@ -4,6 +4,10 @@ namespace Drupal\astrology\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Session\AccountInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 
 /**
  * Provides a 'AstrologyBlock' block.
@@ -13,15 +17,50 @@ use Drupal\Core\Cache\Cache;
  *  admin_label = @Translation("Astrology"),
  * )
  */
-class AstrologyBlock extends BlockBase {
+class AstrologyBlock extends BlockBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Drupal\Core\Session\AccountInterface.
+   *
+   * @var account\Drupal\Core\Session\AccountInterface
+   */
+  protected $account;
+
+  /**
+   * Constructor for this class.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory, AccountInterface $account) {
+    $this->config = $config_factory;
+    $this->account = $account;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('config.factory'),
+      $container->get('current_user')
+    );
+  }
 
   /**
    * {@inheritdoc}
    */
   public function build() {
 
-    $is_admin = \Drupal::currentUser()->hasPermission('Administrator');
-    $astrology_config = \Drupal::config('astrology.settings');
+    $is_admin = $this->account->hasPermission('Administrator');
+    $astrology_config = $this->config->get('astrology.settings');
     $astrology_id = $astrology_config->get('astrology');
     $formatter = $astrology_config->get('format_character');
     $query = db_select('astrology_signs', 's')

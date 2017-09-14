@@ -3,12 +3,27 @@
 namespace Drupal\astrology\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Class UtilityController.
  */
 class UtilityController extends ControllerBase {
+
+  /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+  }
 
   /**
    * Returns timestamps for the given date.
@@ -157,7 +172,7 @@ class UtilityController extends ControllerBase {
    */
   private function updateAstrologyConfigSettings($enabled, $default_astrology, $astrology_id) {
 
-    $astrology_config = \Drupal::configFactory()->getEditable('astrology.settings');
+    $astrology_config = $this->config->getEditable('astrology.settings');
     db_update('astrology')
       ->fields([
         'enabled' => $enabled,
@@ -175,7 +190,7 @@ class UtilityController extends ControllerBase {
    */
   public function updateDefaultAstrology($astrology_id, $status, $op) {
 
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $default_astrology = $astrology_config->get('astrology');
 
     if ($op == 'new' && $status) {

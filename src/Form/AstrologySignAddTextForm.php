@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\astrology\Controller\UtilityController;
 
 /**
@@ -19,12 +21,35 @@ class AstrologySignAddTextForm extends FormBase {
   }
 
   /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $astrology_id = NULL, $sign_id = NULL) {
 
-    $utility = new UtilityController();
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $this->format_character = $astrology_config->get('admin_format_character');
     $this->astrology_id = $astrology_id;
 
@@ -54,7 +79,7 @@ class AstrologySignAddTextForm extends FormBase {
         $value = [
           '#type' => 'select',
           '#title' => $this->t('Select Month'),
-          '#options' => $utility->getMonthsArray(),
+          '#options' => $this->utility->getMonthsArray(),
           '#default_value' => date('n'),
         ];
         break;
@@ -64,13 +89,13 @@ class AstrologySignAddTextForm extends FormBase {
         $value = [
           '#type' => 'select',
           '#title' => $this->t('Select Year'),
-          '#options' => $utility->getYearsArray(),
+          '#options' => $this->utility->getYearsArray(),
           '#default_value' => date('o'),
         ];
         break;
     }
 
-    $options = $utility->getAstrologySignArray($sign_id, $astrology_id);
+    $options = $this->utility->getAstrologySignArray($sign_id, $astrology_id);
     $form['label'] = [
       '#type' => 'label',
       '#title' => $this->t('<strong>:name</strong>', [
@@ -110,7 +135,6 @@ class AstrologySignAddTextForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
-    $utility = new UtilityController();
     $format_character = $form_state->getValue('format_character');
     $astrology_sign_id = $form_state->getValue('astrology_sign_id');
     $date_value = $form_state->getValue('date_value');
@@ -118,19 +142,19 @@ class AstrologySignAddTextForm extends FormBase {
 
     switch ($format_character) {
       case 'z':
-        $post_date = $utility->getTimestamps($date_value);
+        $post_date = $this->utility->getTimestamps($date_value);
         // Get day number of the year.
-        $date = $utility->getFormatDateValue('z', $date_value);
-        $date_message = $utility->getDoy($date + 1, 'l j F');
+        $date = $this->utility->getFormatDateValue('z', $date_value);
+        $date_message = $this->utility->getDoy($date + 1, 'l j F');
         break;
 
       case 'W':
-        $post_date = $utility->getTimestamps($date_value);
+        $post_date = $this->utility->getTimestamps($date_value);
         // Get week number of the year.
-        $date = $utility->getFormatDateValue('W', $date_value);
-        $timestamps = $utility->getTimestamps($date_value);
+        $date = $this->utility->getFormatDateValue('W', $date_value);
+        $timestamps = $this->utility->getTimestamps($date_value);
         // Get first and last day of week.
-        $weeks = $utility->getFirstLastDow($timestamps);
+        $weeks = $this->utility->getFirstLastDow($timestamps);
         $date_message = date('j, M', $weeks[0]) . ' to ' . date('j, M', $weeks[1]);
         break;
 
@@ -138,7 +162,7 @@ class AstrologySignAddTextForm extends FormBase {
         $date = $date_value;
         // Get month timestamps.
         $post_date = mktime(0, 0, 0, $date_value);
-        $months = $utility->getMonthsArray();
+        $months = $this->utility->getMonthsArray();
         $date_message = $months[$date_value];
         break;
 

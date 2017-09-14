@@ -5,6 +5,8 @@ namespace Drupal\astrology\Form;
 use Drupal\astrology\Controller\UtilityController;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class AstrologyAddForm.
@@ -16,6 +18,30 @@ class AstrologyAddForm extends FormBase {
    */
   public function getFormId() {
     return 'astrology_add_form';
+  }
+
+  /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
   }
 
   /**
@@ -71,7 +97,6 @@ class AstrologyAddForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
     // Insert astrology.
-    $utility = new UtilityController();
     $name = $form_state->getValue('name');
     $enabled = $form_state->getValue('enabled');
     $about = $form_state->getValue('about');
@@ -83,7 +108,7 @@ class AstrologyAddForm extends FormBase {
         'about_format' => $about['format'],
       ])->execute();
     if ($enabled) {
-      $utility->updateDefaultAstrology($astrology_id, $enabled, 'new');
+      $this->utility->updateDefaultAstrology($astrology_id, $enabled, 'new');
     }
     $form_state->setRedirect('astrology.list_astrology');
     drupal_set_message($this->t('Astrology :name created', [':name' => $name]));

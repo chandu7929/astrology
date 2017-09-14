@@ -4,12 +4,57 @@ namespace Drupal\astrology\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Routing\RedirectDestinationInterface;
 use Drupal\Core\Url;
 
 /**
  * Class AstrologyController.
  */
 class AstrologyController extends ControllerBase {
+
+  /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Drupal\Core\Form\FormBuilderInterface.
+   *
+   * @var \Drupal\Core\Form\FormBuilderInterface
+   */
+  protected $formBuilder;
+
+  /**
+   * Drupal\Core\Routing\RedirectDestinationInterface.
+   *
+   * @var Drupal\Core\Routing\RedirectDestinationInterface
+   */
+  protected $redirectService;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, $formBuilder, RedirectDestinationInterface $redirectService) {
+    $this->config = $config_factory;
+    $this->formBuilder = $formBuilder;
+    $this->redirectService = $redirectService;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('form_builder'),
+      $container->get('redirect.destination')
+    );
+  }
 
   /**
    * Astrological sign page for given date of birth.
@@ -19,7 +64,7 @@ class AstrologyController extends ControllerBase {
    */
   public function astrologcalSignPage($sign_name = NULL) {
 
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $astrology_id = $astrology_config->get('astrology');
     $formatter = $astrology_config->get('format_character');
     $query = db_select('astrology_signs', 'as_')
@@ -60,7 +105,7 @@ class AstrologyController extends ControllerBase {
    */
   public function astrologySignDetailsPage($sign_name = NULL) {
 
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $astrology_id = $astrology_config->get('astrology');
     $query = db_select('astrology_signs', 'as_')
       ->fields('as_', [
@@ -92,7 +137,7 @@ class AstrologyController extends ControllerBase {
    */
   public function astrologyListTextSignPage($sign_name = NULL, $formatter = NULL) {
 
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $astrology_id = $astrology_config->get('astrology');
     $sign_info = $astrology_config->get('sign_info');
     // $astrology_config->get('format_character');.
@@ -197,13 +242,12 @@ class AstrologyController extends ControllerBase {
    */
   public function astrologySignTextSearch($astrology_id = NULL) {
 
-    $build['config_data'] = \Drupal::formBuilder()->getForm('Drupal\astrology\Form\AstrologySignTextSearch', $astrology_id);
+    $build['config_data'] = $this->formBuilder->getForm('Drupal\astrology\Form\AstrologySignTextSearch', $astrology_id);
 
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $formater = $astrology_config->get('admin_format_character');
     $cdate = $astrology_config->get('admin_cdate');
     $astrology_sign = $astrology_config->get('sign_id');
-    $utility = new UtilityController();
 
     $build['config_table'] = [
       '#type' => 'table',
@@ -221,9 +265,8 @@ class AstrologyController extends ControllerBase {
     switch ($formater) {
       case 'day':
         $format = 'z';
-        $df = 'Date';
         $newdate = $cdate ? $cdate : date('m/d/Y');
-        $timestmp = $utility->getFormatDateValue('z', $newdate);
+        $timestmp = $this->utility->getFormatDateValue('z', $newdate);
         if ($astrology_sign) {
           $query = db_select('astrology_text', 'ht');
           $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
@@ -261,9 +304,8 @@ class AstrologyController extends ControllerBase {
 
       case 'week':
         $format = 'W';
-        $df = 'week';
         $newdate = $cdate ? $cdate : date('m/d/Y');
-        $timestmp = $utility->getFormatDateValue('W', $newdate);
+        $timestmp = $this->utility->getFormatDateValue('W', $newdate);
         if ($astrology_sign) {
           $query = db_select('astrology_text', 'ht');
           $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
@@ -302,7 +344,6 @@ class AstrologyController extends ControllerBase {
 
       case 'month':
         $format = 'n';
-        $df = 'month';
         $timestmp = $cdate ? $cdate : date('n', mktime(0, 0, 0, date("m"), date("d")));
         if ($astrology_sign) {
           $query = db_select('astrology_text', 'ht');
@@ -343,7 +384,6 @@ class AstrologyController extends ControllerBase {
 
       case 'year':
         $format = 'o';
-        $df = 'YEAR';
         $timestmp = $cdate ? $cdate : date('o', mktime(0, 0, 0, date("m"), date("d")));
         if ($astrology_sign) {
           $query = db_select('astrology_text', 'ht');
@@ -383,11 +423,8 @@ class AstrologyController extends ControllerBase {
     }
 
     $result = $query->execute();
-    $rows = [];
-
     foreach ($result as $row) {
-
-      $weeks = $utility->getFirstLastDow($row->post_date);
+      $weeks = $this->utility->getFirstLastDow($row->post_date);
       $icon = $this->t('<img src=":src" alt=":alt" height=":height" width=":width" />', [
         ':src' => file_create_url($row->icon),
         ':alt' => $row->name,
@@ -454,7 +491,6 @@ class AstrologyController extends ControllerBase {
     $result = $query->execute();
 
     // Populate the rows.
-    $rows = [];
     foreach ($result as $row) {
 
       $icon = $this->t('<img src=":src" alt=":alt" height=":height" width=":width" />', [
@@ -473,9 +509,7 @@ class AstrologyController extends ControllerBase {
         '#markup' => text_summary($row->about_sign, $row->about_sign_format),
       ];
 
-      /** @var RedirectDestination $redirectService */
-      $redirectService = \Drupal::service('redirect.destination');
-      $destination = $redirectService->getAsArray();
+      $destination = $this->redirectService->getAsArray();
 
       // Operations (drop down button) column.
       $build['config_table'][$row->id]['operations'] = [
@@ -531,7 +565,6 @@ class AstrologyController extends ControllerBase {
     $result = $query->execute();
 
     // Populate the rows.
-    $rows = [];
     foreach ($result as $row) {
 
       $build['config_table'][$row->id]['name'] = [
@@ -544,9 +577,7 @@ class AstrologyController extends ControllerBase {
         '#markup' => ($row->enabled) ? '<strong>Yes</strong>' : 'No',
       ];
 
-      /** @var RedirectDestination $redirectService */
-      $redirectService = \Drupal::service('redirect.destination');
-      $destination = $redirectService->getAsArray();
+      $destination = $this->redirectService->getAsArray();
 
       // Operations (drop down button) column.
       $build['config_table'][$row->id]['operations'] = [
@@ -583,7 +614,7 @@ class AstrologyController extends ControllerBase {
         ];
       }
     }
-    $build['config_data'] = \Drupal::formBuilder()->getForm('Drupal\astrology\Form\AstrologyConfig');
+    $build['config_data'] = $this->formBuilder->getForm('Drupal\astrology\Form\AstrologyConfig');
     return $build;
   }
 

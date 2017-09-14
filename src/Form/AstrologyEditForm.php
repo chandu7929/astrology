@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\astrology\Controller\UtilityController;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -17,6 +19,30 @@ class AstrologyEditForm extends FormBase {
    */
   public function getFormId() {
     return 'astrology_edit_form';
+  }
+
+  /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
   }
 
   /**
@@ -102,7 +128,6 @@ class AstrologyEditForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // Insert astrology.
-    $utility = new UtilityController();
     $name = $form_state->getValue('name');
     $enabled = $form_state->getValue('enabled');
     $about = $form_state->getValue('about');
@@ -116,7 +141,7 @@ class AstrologyEditForm extends FormBase {
       ])
       ->condition('id', $astrology_id, '=')
       ->execute();
-    $utility->updateDefaultAstrology($astrology_id, $enabled, 'update');
+    $this->utility->updateDefaultAstrology($astrology_id, $enabled, 'update');
     drupal_set_message($this->t('Astrology :name updated', [':name' => $name]));
   }
 

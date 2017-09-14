@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\astrology\Controller\UtilityController;
 use Drupal\Core\Url;
 
@@ -17,6 +19,30 @@ class AstrologyBirthSign extends FormBase {
    */
   public function getFormId() {
     return 'astrology_birth_sign';
+  }
+
+  /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
   }
 
   /**
@@ -47,13 +73,12 @@ class AstrologyBirthSign extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
-    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_config = $this->config('astrology.settings');
     $astrology_id = $astrology_config->get('astrology');
-    $utility = new UtilityController();
 
     $dob = $form_state->getValue('dob');
-    $month = date('n', $utility->getTimestamps($dob));
-    $day = date('j', $utility->getTimestamps($dob));
+    $month = date('n', $this->utility->getTimestamps($dob));
+    $day = date('j', $this->utility->getTimestamps($dob));
     $found = FALSE;
 
     $query = db_select('astrology_signs', 'h')

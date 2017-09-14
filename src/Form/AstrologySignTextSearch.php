@@ -4,6 +4,8 @@ namespace Drupal\astrology\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\astrology\Controller\UtilityController;
 
 /**
@@ -19,16 +21,39 @@ class AstrologySignTextSearch extends FormBase {
   }
 
   /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $config;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->config = $config_factory;
+    $this->utility = new UtilityController($this->config);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $astrology_id = NULL) {
 
-    $config = \Drupal::config('astrology.settings');
-    $utility = new UtilityController();
+    $config = $this->config('astrology.settings');
     $format = $config->get('admin_format_character');
     $cdate = $config->get('admin_cdate');
     $default_sign_id = $config->get('sign_id');
-    $options = $utility->getAstrologyListSignArray($astrology_id);
+    $options = $this->utility->getAstrologyListSignArray($astrology_id);
 
     switch ($format) {
       default:
@@ -51,7 +76,7 @@ class AstrologySignTextSearch extends FormBase {
       case 'week':
         $newdate = $cdate ? $cdate : date('m/d/Y');
         $post_date = strtotime($newdate);
-        $weeks = $utility->getFirstLastDow($post_date);
+        $weeks = $this->utility->getFirstLastDow($post_date);
         // Get week number of the year.
         $date_message = date('j, M', $weeks[0]) . ' to ' . date('j, M', $weeks[1]);
 
@@ -72,12 +97,12 @@ class AstrologySignTextSearch extends FormBase {
 
       case 'month':
         $newdate = $cdate ? $cdate : date('n');
-        $months = $utility->getMonthsArray();
+        $months = $this->utility->getMonthsArray();
         $date_message = $months[$newdate];
         $value = [
           '#type' => 'select',
           '#title' => $this->t('Month'),
-          '#options' => $utility->getMonthsArray(),
+          '#options' => $this->utility->getMonthsArray(),
           '#default_value' => $newdate,
         ];
         $sign_id = [
@@ -93,7 +118,7 @@ class AstrologySignTextSearch extends FormBase {
         $value = [
           '#type' => 'select',
           '#title' => $this->t('Year'),
-          '#options' => $utility->getYearsArray(),
+          '#options' => $this->utility->getYearsArray(),
           '#default_value' => $cdate ? $cdate : date('o'),
         ];
         $sign_id = [
@@ -139,7 +164,7 @@ class AstrologySignTextSearch extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
     // Retrieve the configuration.
-    \Drupal::configFactory()->getEditable('astrology.settings')
+    $this->config->getEditable('astrology.settings')
     // Set the submitted configuration setting.
       ->set('sign_id', $form_state->getValue('sign_id'))
     // You can set multiple configurations at once by making
