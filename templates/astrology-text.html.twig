@@ -1,0 +1,75 @@
+{# 
+/** 
+ * @file
+ * Rendered templates for astrology sign text.
+ * @see AstrologyController::astrologyListTextSignPage.
+ * - formatter contains currently selected format to display astrology text i.e 'day', 'week', 'month', 'year'.
+ * - sign object contains information for the astrology sign you are requesting text.
+ * - date_format to display.
+ * - astrology_text object contains information.
+ * - about_sign_summary contains summary text for the sign.
+ * - first_day_of_week
+ * - last_day_of_week 
+ * - date_range_sign 
+ * - sign_info a boolean value.
+ */
+#}
+
+{% set nav = {
+    day: { link1:'week', link2:'month', link3:'year' },
+    week: { link1:'day', link2:'month', link3:'year' },
+    month: { link1:'day', link2:'week', link3:'year' },
+    year: { link1:'day', link2:'week', link3:'month' }
+} %}
+
+<div class="astrology-date">
+	{% if formatter == 'week' %} 
+	  <span>{{ first_day_of_week|date(date_format) }} to 
+	  	{{ last_day_of_week|date(date_format) }}
+	  </span>
+	{% else %}
+		<span>{{ "now"|date(date_format) }} </span>
+	{% endif %}
+ </div>
+
+<div class="astrology-name-icon-date">
+ 	<h1>
+ 		<a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">{{sign.name}}</a>
+ 	</h1>
+ 	<img src="{{ file_url(sign.icon) }}" alt="{{ sign.name }}" height="75" width="75" />
+ 	<span>{{ date_range_sign }}</span>
+</div>
+{% if astrology_text.text %}
+	<div class="astrology-text">
+	   <p>{{astrology_text.text|raw}}</p>
+	</div>
+ {% else %}
+		<span>No text found for this {{formatter}}.</span>
+{% endif %}
+
+ <div class="astrology-formatter-link">
+ 	<nav>
+	    <ul>
+		    {% for key,item in nav %}
+		    	{% if formatter == key %} 
+			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link1})|lower }}" >Astrology for {{ item.link1 }}</a></li>
+			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link2})|lower }}" >Astrology for {{ item.link2 }}</a></li>
+			        <li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': item.link3})|lower }}" >Astrology for {{ item.link3 }}</a></li>
+			        <li> <a href="{{ path('astrology.astrology_birth_form') }}" >Find your star sign</a></li>
+		        {% endif %}
+		    {% endfor %}
+	    </ul>
+	</nav>
+ </div>
+
+{% if sign_info  %} 
+<div class="astrology-about-icon-date">
+ 	<h1>About the <a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">{{sign.name}}</a></h1>
+ 	<img src="{{ file_url(sign.icon) }}" alt="{{ sign.name }}" height="75" width="75" />
+ 	<span>{{ sign.date_range_from }} - {{ sign.date_range_to }}</span>
+ 	<p>{{about_sign_summary|raw}}</p>
+ 	<span> 
+ 	  <a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">Read more.</a>
+ 	</span> 
+</div>
+{% endif %}

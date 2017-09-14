@@ -1,0 +1,61 @@
+/**
+ * @file
+ * Styling for the astrology module icons.
+ */
+/* Small devices (tablets, 768px and up) */
+@media(min-width: 768px) {
+  .astrology-formatter-link nav ul li {
+    float: left;
+    padding: 5px;
+    margin: 10px;
+  }
+  .astrology-formatter-link nav ul {
+    display: block;
+    clear: both;
+    float: left;
+    width: 100%;
+  }
+}
+.sign-name {
+  float: left;
+  width: 50%;
+  height: 40px;
+}
+.sign-name img {
+  height: 25px;
+  width: 25px;
+}
+.astrology-date {
+  width: 100%;
+  text-align: right;
+}
+.astrology-about-icon-date span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.astrology-name-icon-date span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.astrology-date span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.astrology-body span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+/*.astrology-about-icon-date {
+    border-top: 1px solid #d6d6d6;
+    display: block;
+    clear: both;
+    margin: 0 0 0.5em;
+    padding-bottom: 5px;
+    text-shadow: 0 1px 0 #fff;
+    font-size: 1.071em;
+    line-height: 1.2;
+}*/

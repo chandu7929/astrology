@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ * Contains theme function.
+ */
+
+/**
+ * Implements hook_theme() for astrology.html.twig.
+ */
+function astrology_theme($existing, $type, $theme, $path) {
+
+  return [
+    'astrology' => [
+      'variables' => [
+        'formatter' => 'day',
+        'signs' => NULL,
+        'blank_msg' => NULL,
+      ],
+    ],
+    'astrology-text' => [
+      'variables' => [
+        'formatter' => 'day',
+        'sign_info' => NULL,
+        'sign' => [],
+        'date_format' => NULL,
+        'astrology_text' => [],
+        'about_sign_summary' => NULL,
+        'first_day_of_week' => NULL,
+        'last_day_of_week' => NULL,
+        'date_range_sign' => NULL,
+      ],
+    ],
+    'astrology-sign-text' => [
+      'variables' => [
+        'sign' => [],
+      ],
+    ],
+    'astrology-dob-sign' => [
+      'variables' => [
+        'sign' => [],
+        'formatter' => NULL,
+        'date_range_sign' => NULL,
+        'about_sign_summary' => NULL,
+      ],
+    ],
+  ];
+}

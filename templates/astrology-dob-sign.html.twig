@@ -1,0 +1,32 @@
+{# 
+/** 
+ * @file
+ * Rendered templates for astrology sign text.
+ * @see AstrologyController::astrologySignDetailsPage.
+ * - sign object contains information for the astrology sign you are requesting text.
+ * - about_sign_summary 
+ * - formatter
+ * - date_range_sign
+#}
+
+<h1><a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">{{sign.name}}</a></h1>
+
+<div class="astrology-body">
+ 	<img src="{{ file_url(sign.icon) }}" alt="{{ sign.name }}" height="75" width="75" />
+ 	<span>{{ date_range_sign }}</span>
+ 	<p>{{about_sign_summary|raw}} </p>
+ 	<span>
+ 	  <a href="{{ path('astrology.sign_details', {sign_name: sign.name})|lower }}">Read more.</a>
+ 	</span>
+</div>
+<div class="astrology-formatter-link">
+ 	<nav>
+	    <ul>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'day'})|lower }}" >Astrology for today</a></li>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'week'})|lower }}" >Astrology for week</a></li>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'month'})|lower }}" >Astrology for month</a></li>
+			<li> <a href="{{ path('astrology.list_text_sign_format', {'sign_name': sign.name, 'formatter': 'year'})|lower }}" >Astrology for year</a></li>
+			<li> <a href="{{ path('astrology.astrology_birth_form') }}" >Find your star sign</a></li>
+	    </ul>
+	</nav>
+ </div>

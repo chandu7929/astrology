@@ -1,0 +1,15 @@
+{# 
+/** 
+ * @file
+ * Rendered templates for astrology sign text.
+ * @see AstrologyController::astrologySignDetailsPage.
+ * - sign object contains information for the astrology sign you are requesting text.
+#}
+
+<h1 class="title page-title">About {{sign.name}}</h1>
+
+<div class="astrology-body">
+ 	<img src="{{ file_url(sign.icon) }}" alt="{{ sign.name }}" height="75" width="75" />
+ 	<span>{{ sign.date_range_from }} - {{ sign.date_range_to }}</span>
+ 	<p>{{sign.about_sign|raw}} </p>
+</div>

@@ -1,0 +1,590 @@
+<?php
+
+namespace Drupal\astrology\Controller;
+
+use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Drupal\Core\Url;
+
+/**
+ * Class AstrologyController.
+ */
+class AstrologyController extends ControllerBase {
+
+  /**
+   * Astrological sign page for given date of birth.
+   *
+   * @param string $sign_name
+   *   The sign name to list page and its text.
+   */
+  public function astrologcalSignPage($sign_name = NULL) {
+
+    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_id = $astrology_config->get('astrology');
+    $formatter = $astrology_config->get('format_character');
+    $query = db_select('astrology_signs', 'as_')
+      ->fields('as_')
+      ->condition('name', $sign_name, '=')
+      ->condition('astrology_id ', $astrology_id, '=')
+      ->execute();
+    $query->allowRowCount = TRUE;
+    $sign = $query->fetchObject();
+    if (!$query->rowCount()) {
+      throw new NotFoundHttpException();
+    }
+    $about_sign_summary = text_summary($sign->about_sign, $sign->about_sign_format);
+    $from_date = explode('/', $sign->date_range_from);
+    $to_date = explode('/', $sign->date_range_to);
+    $from_month = $from_date[0];
+    $from_day = $from_date[1];
+    $to_month = $to_date[0];
+    $today = $to_date[1];
+    $date_range_sign = date('M, j', mktime(0, 0, 0, $from_month, $from_day));
+    $date_range_sign .= ' - ' . date('M, j', mktime(0, 0, 0, $to_month, $today));
+    $build[] = [
+      '#theme' => 'astrology-dob-sign',
+      '#sign' => $sign,
+      '#formatter' => $formatter,
+      '#date_range_sign' => $date_range_sign,
+      '#about_sign_summary' => $about_sign_summary,
+    ];
+    $build['#title'] = $this->t('Your astrological sign is ":sign"', [':sign' => $sign_name]);
+    return $build;
+  }
+
+  /**
+   * Astrology sign details page.
+   *
+   * @param string $sign_name
+   *   Sign name.
+   */
+  public function astrologySignDetailsPage($sign_name = NULL) {
+
+    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_id = $astrology_config->get('astrology');
+    $query = db_select('astrology_signs', 'as_')
+      ->fields('as_', [
+        'id', 'icon', 'name', 'about_sign', 'date_range_from', 'date_range_to',
+      ])
+      ->condition('name', $sign_name, '=')
+      ->condition('astrology_id ', $astrology_id, '=')
+      ->execute();
+    $query->allowRowCount = TRUE;
+    $sign = $query->fetchObject();
+    if (!$query->rowCount()) {
+      // Throw new AccessDeniedHttpException();
+      throw new NotFoundHttpException();
+    }
+    $build[] = [
+      '#theme' => 'astrology-sign-text',
+      '#sign' => $sign,
+    ];
+    return $build;
+  }
+
+  /**
+   * Displaying text for sign according to the format selected.
+   *
+   * @param string $sign_name
+   *   Aries, Taurus etc.
+   * @param string $formatter
+   *   Day, week etc.
+   */
+  public function astrologyListTextSignPage($sign_name = NULL, $formatter = NULL) {
+
+    $astrology_config = \Drupal::config('astrology.settings');
+    $astrology_id = $astrology_config->get('astrology');
+    $sign_info = $astrology_config->get('sign_info');
+    // $astrology_config->get('format_character');.
+    $format_char = $formatter;
+    $allowed_format = ['day', 'week', 'month', 'year'];
+    $query = db_select('astrology_signs', 'as_')
+      ->fields('as_')
+      ->condition('name', $sign_name, '=')
+      ->condition('astrology_id ', $astrology_id, '=')
+      ->execute();
+    $query->allowRowCount = TRUE;
+    $sign = $query->fetchObject();
+    if ($query->rowCount() == 0 || !in_array($formatter, $allowed_format)) {
+      throw new NotFoundHttpException();
+    }
+
+    // +1 for day of week as Monday.
+    $first_day_of_week = mktime(0, 0, 0, date("n"), date("j") - date("N") + 1);
+    // +7 to the last day of week that is Sunday.
+    $last_day_of_week = mktime(0, 0, 0, date("n"), date("j") - date("N") + 7);
+
+    $about_sign_summary = text_summary($sign->about_sign, $sign->about_sign_format);
+    $from_date = explode('/', $sign->date_range_from);
+    $to_date = explode('/', $sign->date_range_to);
+    $from_month = $from_date[0];
+    $from_day = $from_date[1];
+    $to_month = $to_date[0];
+    $today = $to_date[1];
+    switch ($format_char) {
+      case 'day':
+        $format = 'z';
+        $date = date('z');
+        break;
+
+      case 'week':
+        $format = 'W';
+        $date = date('W');
+        break;
+
+      case 'month':
+        $format = 'n';
+        $date = date('n');
+        break;
+
+      case 'year':
+        $format = 'o';
+        $date = date('o');
+        break;
+    }
+
+    $query1 = db_select('astrology_text', 'h')
+      ->fields('h', ['text', 'id', 'text_format'])
+      ->condition('value', $date)
+      ->condition('astrology_sign_id', $sign->id)
+      ->condition('format_character', $format)
+      ->execute();
+    $astrology_text = $query1->fetchObject();
+
+    $date_range_sign = date('M, j', mktime(0, 0, 0, $from_month, $from_day));
+    $date_range_sign .= ' - ' . date('M, j', mktime(0, 0, 0, $to_month, $today));
+
+    if ($format == 'z') {
+      $date_format = 'l, j F';
+    }
+    elseif ($format == 'W') {
+      $date_format = 'j, F';
+    }
+    elseif ($format == 'n') {
+      $date_format = 'F';
+    }
+    else {
+      $date_format = 'o';
+    }
+
+    $build[] = [
+      '#theme' => 'astrology-text',
+      '#sign' => $sign,
+      '#sign_info' => $sign_info,
+      '#formatter' => $formatter,
+      '#date_format' => $date_format,
+      '#astrology_text' => $astrology_text,
+      '#about_sign_summary' => $about_sign_summary,
+      '#first_day_of_week' => $first_day_of_week,
+      '#last_day_of_week' => $last_day_of_week,
+      '#date_range_sign' => $date_range_sign,
+    ];
+    if ($format_char == 'day') {
+      $title = $this->t('Astrology of the day');
+    }
+    else {
+      $title = $this->t('Astrology for the :date', [':date' => $format_char]);
+    }
+    $build['#title'] = $title;
+    return $build;
+  }
+
+  /**
+   * Search text for available signs from selected astrology.
+   *
+   * @param int $astrology_id
+   *   Astrology id.
+   */
+  public function astrologySignTextSearch($astrology_id = NULL) {
+
+    $build['config_data'] = \Drupal::formBuilder()->getForm('Drupal\astrology\Form\AstrologySignTextSearch', $astrology_id);
+
+    $astrology_config = \Drupal::config('astrology.settings');
+    $formater = $astrology_config->get('admin_format_character');
+    $cdate = $astrology_config->get('admin_cdate');
+    $astrology_sign = $astrology_config->get('sign_id');
+    $utility = new UtilityController();
+
+    $build['config_table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Icon'),
+        $this->t('Name'),
+        $this->t('Text'),
+        $this->t(':dated', [':dated' => $formater]),
+        $this->t('Operations'),
+      ],
+      '#sticky' => TRUE,
+      '#empty' => $this->t('There is no item to display.'),
+    ];
+
+    switch ($formater) {
+      case 'day':
+        $format = 'z';
+        $df = 'Date';
+        $newdate = $cdate ? $cdate : date('m/d/Y');
+        $timestmp = $utility->getFormatDateValue('z', $newdate);
+        if ($astrology_sign) {
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name', 'astrology_id']);
+          $query->fields('h', ['id']);
+          $query->condition('h.id', $astrology_id, '=')
+            ->condition('hs.id', $astrology_sign, '=')
+            ->condition('ht.format_character', $format, '=')
+            ->condition('ht.value', $timestmp, '=')
+            ->execute();
+        }
+        else {
+          $subquery = db_select('astrology', 'h');
+          $subquery->join('astrology_signs', 'hs', 'hs.astrology_id = h.id');
+          $subquery->fields('hs', ['id'])->condition('hs.astrology_id', $astrology_id, '=');
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name']);
+          $query->fields('h', ['id'])
+            ->condition('h.id', $astrology_id, '=')
+            ->condition('astrology_sign_id', $subquery, 'IN')
+            ->condition('format_character', $format, '=')
+            ->condition('value', $timestmp, '=')
+            ->execute();
+        }
+        break;
+
+      case 'week':
+        $format = 'W';
+        $df = 'week';
+        $newdate = $cdate ? $cdate : date('m/d/Y');
+        $timestmp = $utility->getFormatDateValue('W', $newdate);
+        if ($astrology_sign) {
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name', 'astrology_id']);
+          $query->fields('h', ['id']);
+          $query->condition('h.id', $astrology_id, '=')
+            ->condition('hs.id', $astrology_sign, '=')
+            ->condition('ht.format_character', $format, '=')
+            ->condition('ht.value', $timestmp, '=')
+            ->execute();
+        }
+        else {
+          $subquery = db_select('astrology', 'h');
+          $subquery->join('astrology_signs', 'hs', 'hs.astrology_id = h.id');
+          $subquery->fields('hs', ['id'])
+            ->condition('hs.astrology_id', $astrology_id, '=');
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name']);
+          $query->fields('h', ['id'])
+            ->condition('h.id', $astrology_id, '=')
+            ->condition('astrology_sign_id', $subquery, 'IN')
+            ->condition('format_character', $format, '=')
+            ->condition('value', $timestmp, '=')
+            ->execute();
+        }
+        break;
+
+      case 'month':
+        $format = 'n';
+        $df = 'month';
+        $timestmp = $cdate ? $cdate : date('n', mktime(0, 0, 0, date("m"), date("d")));
+        if ($astrology_sign) {
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name', 'astrology_id']);
+          $query->fields('h', ['id']);
+          $query->condition('h.id', $astrology_id, '=')
+            ->condition('hs.id', $astrology_sign, '=')
+            ->condition('ht.format_character', $format, '=')
+            ->condition('ht.value', $timestmp, '=')
+            ->execute();
+        }
+        else {
+          $subquery = db_select('astrology', 'h');
+          $subquery->join('astrology_signs', 'hs', 'hs.astrology_id = h.id');
+          $subquery->fields('hs', ['id'])
+            ->condition('hs.astrology_id', $astrology_id, '=');
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name']);
+          $query->fields('h', ['id'])
+            ->condition('h.id', $astrology_id, '=')
+            ->condition('astrology_sign_id', $subquery, 'IN')
+            ->condition('format_character', $format, '=')
+            ->condition('value', $timestmp, '=')
+            ->execute();
+        }
+        $month = date('F, Y', mktime(0, 0, 0, (int) $timestmp, date('d'), date('y')));
+        break;
+
+      case 'year':
+        $format = 'o';
+        $df = 'YEAR';
+        $timestmp = $cdate ? $cdate : date('o', mktime(0, 0, 0, date("m"), date("d")));
+        if ($astrology_sign) {
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name', 'astrology_id']);
+          $query->fields('h', ['id']);
+          $query->condition('h.id', $astrology_id, '=')
+            ->condition('hs.id', $astrology_sign, '=')
+            ->condition('ht.format_character', $format, '=')
+            ->condition('ht.value', $timestmp, '=')
+            ->execute();
+        }
+        else {
+          $subquery = db_select('astrology', 'h');
+          $subquery->join('astrology_signs', 'hs', 'hs.astrology_id = h.id');
+          $subquery->fields('hs', ['id'])
+            ->condition('hs.astrology_id', $astrology_id, '=');
+          $query = db_select('astrology_text', 'ht');
+          $query->join('astrology_signs', 'hs', 'hs.id = ht.astrology_sign_id');
+          $query->join('astrology', 'h', 'hs.astrology_id = h.id');
+          $query->fields('ht', [
+            'id', 'text', 'text_format', 'value', 'astrology_sign_id', 'post_date',
+          ]);
+          $query->fields('hs', ['icon', 'name']);
+          $query->fields('h', ['id'])
+            ->condition('h.id', $astrology_id, '=')
+            ->condition('astrology_sign_id', $subquery, 'IN')
+            ->condition('format_character', $format, '=')
+            ->condition('value', $timestmp, '=')
+            ->execute();
+        }
+        break;
+    }
+
+    $result = $query->execute();
+    $rows = [];
+
+    foreach ($result as $row) {
+
+      $weeks = $utility->getFirstLastDow($row->post_date);
+      $icon = $this->t('<img src=":src" alt=":alt" height=":height" width=":width" />', [
+        ':src' => file_create_url($row->icon),
+        ':alt' => $row->name,
+        ':height' => '30',
+        ':width' => '30',
+      ]);
+      $week = date('j, M', $weeks[0]) . ' - ' . date('j, M', $weeks[1]);
+      $dated = ($formater == 'day') ? date('j M,Y', $row->post_date) :
+       (($formater == 'week') ? $week :
+        (($formater == 'month') ? $month : $timestmp));
+
+      $build['config_table'][$row->astrology_sign_id]['icon'] = [
+        '#markup' => $icon,
+      ];
+      $build['config_table'][$row->astrology_sign_id]['name'] = [
+        '#markup' => $row->name,
+      ];
+      $build['config_table'][$row->astrology_sign_id]['text'] = [
+        '#markup' => text_summary($row->text, $row->text_format),
+      ];
+      $build['config_table'][$row->astrology_sign_id]['dated'] = [
+        '#plain_text' => $dated,
+      ];
+
+      // Operations (drop down button) column.
+      $build['config_table'][$row->astrology_sign_id]['operations'] = [
+        '#type' => 'operations',
+        '#links' => [],
+      ];
+      $build['config_table'][$row->astrology_sign_id]['operations']['#links']['edit'] = [
+        'title' => $this->t('Edit'),
+        'url' => Url::fromRoute('astrology.astrology_sign_text_edit', [
+          'astrology_id' => $astrology_id,
+          'sign_id' => $row->astrology_sign_id,
+          'text_id' => $row->id,
+        ]),
+      ];
+    }
+    return $build;
+  }
+
+  /**
+   * List all signs from available astrology.
+   *
+   * @param int $astrology_id
+   *   The node to add banners to.
+   */
+  public function astrologyListSign($astrology_id = NULL) {
+
+    $build['config_table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Icon'),
+        $this->t('Name'),
+        $this->t('Description'),
+        $this->t('Operations'),
+      ],
+      '#empty' => $this->t('There are no signs yet.</a>'),
+    ];
+
+    $query = db_select('astrology_signs', 's')
+      ->fields('s')
+      ->condition('s.astrology_id', $astrology_id, '=');
+    $result = $query->execute();
+
+    // Populate the rows.
+    $rows = [];
+    foreach ($result as $row) {
+
+      $icon = $this->t('<img src=":src" alt=":alt" height=":height" width=":width" />', [
+        ':src' => file_create_url($row->icon),
+        ':alt' => $row->name,
+        ':height' => '30',
+        ':width' => '30',
+      ]);
+      $build['config_table'][$row->id]['icon'] = [
+        '#markup' => $icon,
+      ];
+      $build['config_table'][$row->id]['name'] = [
+        '#plain_text' => $row->name,
+      ];
+      $build['config_table'][$row->id]['about_sign'] = [
+        '#markup' => text_summary($row->about_sign, $row->about_sign_format),
+      ];
+
+      /** @var RedirectDestination $redirectService */
+      $redirectService = \Drupal::service('redirect.destination');
+      $destination = $redirectService->getAsArray();
+
+      // Operations (drop down button) column.
+      $build['config_table'][$row->id]['operations'] = [
+        '#type' => 'operations',
+        '#links' => [],
+      ];
+      $build['config_table'][$row->id]['operations']['#links']['add_text'] = [
+        'title' => $this->t('Add text'),
+        'url' => Url::fromRoute('astrology.add_text_astrology_sign', [
+          'astrology_id' => $row->astrology_id,
+          'sign_id' => $row->id,
+        ]),
+      ];
+      $build['config_table'][$row->id]['operations']['#links']['edit_sign'] = [
+        'title' => $this->t('Edit'),
+        'url' => Url::fromRoute('astrology.edit_astrology_sign', [
+          'astrology_id' => $row->astrology_id,
+          'sign_id' => $row->id,
+        ])->setOption('query', $destination),
+      ];
+      // Remove delete option for astrology signs from zodiac.
+      if ($row->astrology_id != 1) {
+        $build['config_table'][$row->id]['operations']['#links']['delete_sign'] = [
+          'title' => $this->t('Delete'),
+        // ->setOption('query', $destination),.
+          'url' => Url::fromRoute('astrology.delete_astrology_sign', [
+            'astrology_id' => $row->astrology_id,
+            'sign_id' => $row->id,
+          ]),
+        ];
+      }
+    }
+    return $build;
+  }
+
+  /**
+   * Configuration page that shows available astrology and its default setting.
+   */
+  public function astrologyConfig() {
+
+    $build['config_table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Name'),
+        $this->t('Description'),
+        $this->t('Enabled'),
+        $this->t('Operations'),
+      ],
+    ];
+
+    $query = db_select('astrology', 'a');
+    $query->fields('a');
+    $result = $query->execute();
+
+    // Populate the rows.
+    $rows = [];
+    foreach ($result as $row) {
+
+      $build['config_table'][$row->id]['name'] = [
+        '#plain_text' => $this->t(':name', [':name' => $row->name]),
+      ];
+      $build['config_table'][$row->id]['about'] = [
+        '#markup' => text_summary($row->about, $row->about_format),
+      ];
+      $build['config_table'][$row->id]['enabled'] = [
+        '#markup' => ($row->enabled) ? '<strong>Yes</strong>' : 'No',
+      ];
+
+      /** @var RedirectDestination $redirectService */
+      $redirectService = \Drupal::service('redirect.destination');
+      $destination = $redirectService->getAsArray();
+
+      // Operations (drop down button) column.
+      $build['config_table'][$row->id]['operations'] = [
+        '#type' => 'operations',
+        '#links' => [],
+      ];
+      $build['config_table'][$row->id]['operations']['#links']['list_sign'] = [
+        'title' => $this->t('List sign'),
+        'url' => Url::fromRoute('astrology.list_astrology_sign', ['astrology_id' => $row->id]),
+      ];
+      $build['config_table'][$row->id]['operations']['#links']['list_text'] = [
+        'title' => $this->t('List text'),
+        'url' => Url::fromRoute('astrology.astrology_sign_list_text', ['astrology_id' => $row->id]),
+      ];
+      if ($row->id != 1) {
+        $build['config_table'][$row->id]['operations']['#links']['add_sign'] = [
+          'title' => $this->t('Add sign'),
+          'url' => Url::fromRoute('astrology.add_astrology_sign', ['astrology_id' => $row->id]),
+        ];
+      }
+      $build['config_table'][$row->id]['operations']['#links']['edit_astrology'] = [
+        'title' => $this->t('Edit'),
+        'url' => Url::fromRoute('astrology.edit_astrology', [
+          'astrology_id' => $row->id,
+        ])->setOption('query', $destination),
+      ];
+
+      // Remove un-necessary option for astrology zodiac.
+      if ($row->id != 1) {
+        $build['config_table'][$row->id]['operations']['#links']['delete_astrology'] = [
+          'title' => $this->t('Delete'),
+        // ->setOption('query', $destination),.
+          'url' => Url::fromRoute('astrology.delete_astrology', ['astrology_id' => $row->id]),
+        ];
+      }
+    }
+    $build['config_data'] = \Drupal::formBuilder()->getForm('Drupal\astrology\Form\AstrologyConfig');
+    return $build;
+  }
+
+}
